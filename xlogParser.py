@@ -1,42 +1,59 @@
-import urllib.request
 import os
 import json
-from pprint import pprint
+import wget
+import requests
+import mimetypes
+import glob
+from subprocess import Popen
 
-projectPath = '/home/ericrao/work/myPythonDemos/xlogParser/'
-xlogFilesPath = projectPath + 'xlog/'
-xlogURLFile = 'weloveXlogFiles_20180306.txt'
-
-
-def downloadFile(url):
-    response = urllib.request.urlopen(url)
-    html = response.read()
-    pprint(html)
+projectPath = os.getcwd()
+xlogFilesPath = projectPath + '/xlog'
+xlogURLFile = '/weloveXlogFiles.txt'
 
 
-if not os.path.exists(xlogFilesPath):
-    os.mkdir(xlogFilesPath)
-
-# def createXlogFiles():
-#     f = open(path + 'test.txt', 'w+')
-#
-#
-# createXlogFiles()
-jsonData = '{"a":1,"b":2,"c":3,"d":4,"e":5}';
+def download_file(url):
+    # deletefiles(xlogFilesPath)
+    checkdirexist()
+    file_name = wget.download(url, xlogFilesPath)
+    print(file_name)
 
 
-def readFile():
+def parse_file_content_type(url):
+    response = requests.get(url)
+    content_type = response.headers['content-type']
+    extentions = mimetypes.guess_extension(content_type)
+    print(extentions)
+
+
+def checkdirexist():
+    if not os.path.exists(xlogFilesPath):
+        os.mkdir(xlogFilesPath)
+
+
+def deletefiles(path):
+    os.removedirs(path)
+
+
+def createXlogFiles(fileName):
+    f = open(xlogFilesPath + fileName, 'wr+')
+
+
+def read_file():
     f = open(projectPath + xlogURLFile, 'r')
     content = ''
     for line in f:
-        # print(line)
         content += line
-
     text = json.loads(content)
-    # pprint(text['data']['entries'])
     for entry in text['data']['entries']:
-        print(entry['dl_remove_attname_url'])
-        downloadFile(entry['dl_remove_attname_url'])
+        download_file(entry['dl_remove_attname_url'])
 
 
-readFile()
+def parse_xlog_to_log():
+    for filename in glob.glob(xlogFilesPath + '/*.xlog'):
+        words = filename.split('/')
+        xlogFileName = 'xlog/' + words[len(words) - 1]
+        Popen([os.getcwd() + '/decode_mars_log_file.py', os.getcwd() + '/' + xlogFileName])
+
+
+read_file()
+parse_xlog_to_log()
